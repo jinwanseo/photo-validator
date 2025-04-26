@@ -4,72 +4,113 @@
     <meta charset="UTF-8">
     <title>증명 사진 검증</title>
     <!-- face-api.js 라이브러리 로드 -->
-    <script defer src="dist/photo-validator.js" type="module"></script>
+    <script defer src="dist/photo-validator.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
         }
-        canvas {
-            display: block;
-            margin: 20px 0;
-            border: 1px solid #ddd;
-            background-color: rgba(255, 255, 255, 0.8);
-        }
-        img {
-            display: none;
-        }
         p {
             font-weight: bold;
             margin-top: 10px;
         }
+        .text-error {
+            color: red;
+        }
+        .text-success {
+            color: green;
+        }
+
     </style>
 </head>
 <body>
 
 <h2>증명 사진 업로드</h2>
-<input type="file" id="photoInput" accept="image/png, image/jpeg">
-<div id="canvasContainer"></div>
-<img id="preview" alt="미리보기 이미지">
-<p id="result"></p>
+<div style="display: flex; flex-direction: column;">
+    <input type="file" id="photoInput" accept="image/png, image/jpeg">
+    <!--<img id="photo-preview" />-->
+    <div id="result"></div>
+</div>
 
 <script>
     // 페이지 로드 후 모듈 초기화
     window.addEventListener("DOMContentLoaded", async () => {
         // 사진 검증기 인스턴스 생성 (옵션 설정 가능)
         const validator = new PhotoValidator({
-            modelsPath: '/models',
-            debug: true
+            debug: true,
+            modelsPath: './models'
         });
 
         // 모델 초기화
-        await validator.init('canvasContainer', 'result');
+        await validator.init('photoInput');
 
         // 파일 업로드 핸들러
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const img = document.getElementById("preview");
-            const result = document.getElementById("result");
-
+            const img = validator.getPreviewElement();
+            const errorMessages = [];
             const reader = new FileReader();
             reader.onload = function(e) {
                 img.src = e.target.result;
                 img.onload = async () => {
-                    result.style.color = "black";
-                    result.textContent = "검증 중...";
-
                     try {
-                        // 사진 검증 실행
-                        const validation = await validator.validatePhoto(file, img);
+                        // 파일 형식 검사
+                        if(!validator.isValidFileType(file) ) {
+                            errorMessages.push("<p class='text-error'>❌ 허용되지 않는 파일 형식입니다.</p>");
+                            console.error(`파일 형식 오류.. 현재 : ${file.type}`);
+                        }
+                        // 이미지 크기 검사
+                        if(!validator.isImageSizeValid(300, 360)) {
+                            errorMessages.push("<p class='text-error'>❌ 이미지 크기가 너무 작습니다.</p>");
+                            console.error(`이미지 사이즈 오류.. 가로 x 세로 : ${img.width} x ${img.height}`);
+                        }
 
-                        // 결과 표시
-                        validator.displayResult(validation);
+                        // 이미지 비율 검사
+                        if(!validator.isValidAspectRatio()) {
+                            errorMessages.push("<p class='text-error'>❌ 증명 사진 비율에 맞는 이미지를 등록해주세요.</p>");
+                            console.error(`이미지 사이즈 오류.. 가로 x 세로 : ${img.width} x ${img.height}`);
+                        }
+
+                        // 사진 내 여러 사람 얼굴 검출 여부 확인
+                        if(!(await validator.isSingleFace())) {
+                            errorMessages.push("<p class='text-error'>❌ 사진에는 반드시 한 사람이 있어야 합니다.</p>");
+                            console.error("사진에는 한사람만 등장해야 합니다.");
+                        }
+
+                        // 머리가 잘리거나 사진 상단과 가까운지 여부
+                        if(!(await validator.isHeadFullyVisible())) {
+                            errorMessages.push("<p class='text-error'>❌ 머리가 사진 상단과 너무 가깝거나 잘려있습니다.</p>");
+                            console.error("머리가 붙어있거나 잘려있는 사진입니다.")
+                        }
+
+                        // 얼굴 정면 바라봄 여부
+                        if(!(await validator.isFacingForward(3.5))) {
+                            errorMessages.push("<p class='text-error'>❌ 얼굴이 정면을 향하고 있지 않습니다.</p>");
+                            console.error("얼굴이 정면을 향하고 있어야합니다.");
+                        }
+                        // 배경 색상 편차 여부
+                        if(!(await validator.isUniformBackground())) {
+                            errorMessages.push("<p class='text-error'>❌ 배경이 균일하지 않습니다. 단일 색상 배경을 사용하세요.</p>");
+                            console.error("배경 색상이 균일하지않습니다.");
+                        }
+                        // 얼굴 중앙 위치 여부
+                        if(!(await validator.isFaceCenteredAndComplete(false))) {
+                            errorMessages.push("<p class='text-error'>❌ 얼굴이 중앙에 위치하지 않습니다.</p>");
+                            console.error("얼굴이 중앙에 위치하지 않습니다.")
+                        }
+
                     } catch (error) {
                         console.error("검증 오류:", error);
-                        result.textContent = "검증 중 오류가 발생했습니다: " + error.message;
-                        result.style.color = "red";
+                        errorMessages.push(`<p class='text-error'>❌ ${error}`);
+                    }
+
+                    // 에러 메시지 있는 경우 예외처리
+                    if(errorMessages.length > 0) {
+                        document.getElementById("result").innerHTML = errorMessages.join("\n");
+                    } else{
+                        document.getElementById("result").innerHTML = "<p class='text-success'>✅ 증명 사진으로 적합합니다.</p>";
                     }
                 };
             };

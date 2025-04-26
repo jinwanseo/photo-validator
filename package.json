@@ -16,9 +16,10 @@
     "url": "https://github.com/jinwanseo/photo-validator/issues"
   },
   "scripts": {
+    "publish": "npm publish",
     "build": "webpack",
     "prepublishOnly": "npm run build",
-    "publish": "npm publish",
+    "version": "npm version patch",
     "publish:public": "npm publish --access public"
   },
   "keywords": [
