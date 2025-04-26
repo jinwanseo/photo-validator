@@ -2,6 +2,9 @@
 
 증명사진 검증을 위한 JavaScript 라이브러리입니다. face-api.js를 기반으로 구현되었습니다.
 
+[데모 체험 하기 🖥️](https://photo-validator.netlify.app)
+
+
 ## 설치
 
 ```bash
