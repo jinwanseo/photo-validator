@@ -3,124 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <title>증명 사진 검증</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- face-api.js 라이브러리 로드 -->
-    <script defer src="dist/photo-validator.js"></script>
+    <script defer src="photo-validator.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        p {
-            font-weight: bold;
-            margin-top: 10px;
-        }
-        .text-error {
-            color: red;
-        }
-        .text-success {
-            color: green;
+        
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
         }
 
+        .modal-enter {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .modal-exit {
+            animation: fadeOut 0.3s ease-out forwards;
+        }
+
+        .upload-area {
+            transition: all 0.3s ease;
+        }
+
+        .success-check {
+            animation: checkmark 0.5s ease-in-out forwards;
+        }
+
+        .error-x {
+            animation: xmark 0.5s ease-in-out forwards;
+        }
+
+        @keyframes checkmark {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes xmark {
+            0% { transform: scale(0) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+
+        .border-error {
+            border-color: #ef4444 !important;
+            animation: borderPulse 1s ease-in-out;
+        }
+
+        .border-success {
+            border-color: #10b981 !important;
+            animation: borderPulse 1s ease-in-out;
+        }
+
+        @keyframes borderPulse {
+            0% { border-color: #e5e7eb; }
+            50% { border-color: currentColor; }
+            100% { border-color: currentColor; }
+        }
+
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">증명 사진 검증</h1>
+            <p class="text-center text-gray-600 mb-8">업로드한 사진이 증명사진 기준에 맞는지 확인해보세요</p>
 
-<h2>증명 사진 업로드</h2>
-<div style="display: flex; flex-direction: column;">
-    <input type="file" id="photoInput" accept="image/png, image/jpeg">
-    <!--<img id="photo-preview" />-->
-    <div id="result"></div>
-</div>
+            <div class="bg-white rounded-xl shadow-lg p-6 upload-area">
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <input type="file" id="photoInput" accept="image/png, image/jpeg" class="hidden">
+                    <label for="photoInput" class="cursor-pointer">
+                        <div class="flex flex-col items-center">
+                            <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <p class="text-gray-600">클릭 하여 사진을 업로드하세요</p>
+                            <p class="text-sm text-gray-500 mt-2">PNG 또는 JPG 파일만 가능합니다</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<script>
-    // 페이지 로드 후 모듈 초기화
-    window.addEventListener("DOMContentLoaded", async () => {
-        // 사진 검증기 인스턴스 생성 (옵션 설정 가능)
-        const validator = new PhotoValidator({
-            debug: true,
-            modelsPath: './models'
-        });
+    <!-- Modal Template -->
+    <div id="modalTemplate" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800"></h3>
+                <button class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="text-gray-600"></div>
+        </div>
+    </div>
 
-        // 모델 초기화
-        await validator.init('photoInput');
+    <script>
+        // 페이지 로드 후 모듈 초기화
+        window.addEventListener("DOMContentLoaded", async () => {
+            // 사진 검증기 인스턴스 생성 (옵션 설정 가능)
+            const validator = new PhotoValidator({
+                debug: true,
+                modelsPath: './models'
+            });
 
-        // 파일 업로드 핸들러
-        async function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            // 모델 초기화
+            await validator.init('photoInput');
 
-            const img = validator.getPreviewElement();
-            const errorMessages = [];
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                img.src = e.target.result;
-                img.onload = async () => {
-                    try {
-                        // 파일 형식 검사
-                        if(!validator.isValidFileType(file) ) {
-                            errorMessages.push("<p class='text-error'>❌ 허용되지 않는 파일 형식입니다.</p>");
-                            console.error(`파일 형식 오류.. 현재 : ${file.type}`);
-                        }
-                        // 이미지 크기 검사
-                        if(!validator.isImageSizeValid(300, 360)) {
-                            errorMessages.push("<p class='text-error'>❌ 이미지 크기가 너무 작습니다.</p>");
-                            console.error(`이미지 사이즈 오류.. 가로 x 세로 : ${img.width} x ${img.height}`);
-                        }
+            // 모달 요소 참조
+            const modal = document.getElementById("modalTemplate");
+            const modalTitle = modal.querySelector("h3");
+            const modalContent = modal.querySelector("div:last-child");
+            const modalCloseButton = modal.querySelector("button");
 
-                        // 이미지 비율 검사
-                        if(!validator.isValidAspectRatio()) {
-                            errorMessages.push("<p class='text-error'>❌ 증명 사진 비율에 맞는 이미지를 등록해주세요.</p>");
-                            console.error(`이미지 사이즈 오류.. 가로 x 세로 : ${img.width} x ${img.height}`);
-                        }
-
-                        // 사진 내 여러 사람 얼굴 검출 여부 확인
-                        if(!(await validator.isSingleFace())) {
-                            errorMessages.push("<p class='text-error'>❌ 사진에는 반드시 한 사람이 있어야 합니다.</p>");
-                            console.error("사진에는 한사람만 등장해야 합니다.");
-                        }
-
-                        // 머리가 잘리거나 사진 상단과 가까운지 여부
-                        if(!(await validator.isHeadFullyVisible())) {
-                            errorMessages.push("<p class='text-error'>❌ 머리가 사진 상단과 너무 가깝거나 잘려있습니다.</p>");
-                            console.error("머리가 붙어있거나 잘려있는 사진입니다.")
-                        }
-
-                        // 얼굴 정면 바라봄 여부
-                        if(!(await validator.isFacingForward(3.5))) {
-                            errorMessages.push("<p class='text-error'>❌ 얼굴이 정면을 향하고 있지 않습니다.</p>");
-                            console.error("얼굴이 정면을 향하고 있어야합니다.");
-                        }
-                        // 배경 색상 편차 여부
-                        if(!(await validator.isUniformBackground())) {
-                            errorMessages.push("<p class='text-error'>❌ 배경이 균일하지 않습니다. 단일 색상 배경을 사용하세요.</p>");
-                            console.error("배경 색상이 균일하지않습니다.");
-                        }
-                        // 얼굴 중앙 위치 여부
-                        if(!(await validator.isFaceCenteredAndComplete(false))) {
-                            errorMessages.push("<p class='text-error'>❌ 얼굴이 중앙에 위치하지 않습니다.</p>");
-                            console.error("얼굴이 중앙에 위치하지 않습니다.")
-                        }
-
-                    } catch (error) {
-                        console.error("검증 오류:", error);
-                        errorMessages.push(`<p class='text-error'>❌ ${error}`);
-                    }
-
-                    // 에러 메시지 있는 경우 예외처리
-                    if(errorMessages.length > 0) {
-                        document.getElementById("result").innerHTML = errorMessages.join("\n");
-                    } else{
-                        document.getElementById("result").innerHTML = "<p class='text-success'>✅ 증명 사진으로 적합합니다.</p>";
-                    }
-                };
+            // 모달 닫기 함수
+            const closeModal = () => {
+                modal.classList.add("modal-exit");
+                setTimeout(() => {
+                    modal.classList.add("hidden");
+                    modal.classList.remove("modal-enter", "modal-exit");
+                }, 300);
             };
-            reader.readAsDataURL(file);
-        }
 
-        // 이벤트 리스너 등록
-        document.getElementById("photoInput").addEventListener("change", handleImageUpload);
-    });
-</script>
+            // 모달 표시 함수
+            const showModal = (title, message, type = 'error') => {
+                const icon = type === 'error' ? 
+                    `<svg class="w-16 h-16 text-red-500 error-x mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>` :
+                    type === 'loading' ?
+                    `<svg class="w-16 h-16 text-blue-500 spinner mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>` :
+                    `<svg class="w-16 h-16 text-green-500 success-check mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>`;
 
+                modalTitle.textContent = title;
+                modalContent.innerHTML = `
+                    <div class="flex flex-col items-center">
+                        ${icon}
+                        <p class="mt-4 text-lg font-semibold text-gray-800">${message}</p>
+                    </div>
+                `;
+                modal.classList.remove("hidden");
+                modal.classList.add("modal-enter");
+
+                // 업로드 영역 테두리 색상 변경
+                const uploadArea = document.querySelector('.border-2');
+                uploadArea.classList.remove('border-error', 'border-success');
+                if (type === 'error') {
+                    uploadArea.classList.add('border-error');
+                } else if (type === 'success') {
+                    uploadArea.classList.add('border-success');
+                }
+            };
+
+            // ESC 키 이벤트 핸들러
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+
+            // 모달 이벤트 리스너 등록
+            modal.addEventListener("click", (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+            modalCloseButton.addEventListener("click", closeModal);
+
+            // 파일 업로드 핸들러
+            async function handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const img = validator.getPreviewElement();
+                const reader = new FileReader();
+                const errMessages = [];
+
+                // 로딩 모달 표시
+                showModal("검증 중", "이미지를 검증하고 있습니다...", 'loading');
+
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    img.onload = async () => {
+                        try {
+                            // 파일 형식 검사
+                            if(!validator.isValidFileType(file)) {
+                                errMessages.push("허용되지 않는 파일 형식입니다. PNG 또는 JPG 파일만 업로드 가능합니다.");
+                                showModal("파일 형식 오류", "허용되지 않는 파일 형식입니다. PNG 또는 JPG 파일만 업로드 가능합니다.");
+                                console.error(`파일 형식 오류.. 현재 : ${file.type}`);
+                            }
+                            // 이미지 크기 검사
+                            if(!validator.isImageSizeValid(300, 360)) {
+                                errMessages.push("이미지 크기가 너무 작습니다. 최소 300x360 픽셀 이상의 이미지를 업로드해주세요.");   
+                                showModal("이미지 크기 오류", "이미지 크기가 너무 작습니다. 최소 300x360 픽셀 이상의 이미지를 업로드해주세요.");
+                                console.error(`이미지 사이즈 오류.. 가로 x 세로 : ${img.width} x ${img.height}`);
+                            }
+
+                            // 이미지 비율 검사
+                            if(!validator.isValidAspectRatio()) {
+                                errMessages.push("증명 사진 비율에 맞는 이미지를 등록해주세요.");
+                                showModal("이미지 비율 오류", "증명 사진 비율에 맞는 이미지를 등록해주세요.");
+                                console.error(`이미지 사이즈 오류.. 가로 x 세로 : ${img.width} x ${img.height}`);
+                            }
+
+                            // 사진 내 여러 사람 얼굴 검출 여부 확인
+                            if(!(await validator.isSingleFace())) {
+                                errMessages.push( "사진에는 반드시 한 사람이 있어야 합니다.");
+                                showModal("얼굴 검출 오류", "사진에는 반드시 한 사람이 있어야 합니다.");
+                                console.error("사진에는 한사람만 등장해야 합니다.");
+                            }
+
+                            // 머리가 잘리거나 사진 상단과 가까운지 여부
+                            if(!(await validator.isHeadFullyVisible())) {
+                                errMessages.push("머리가 사진 상단과 너무 가깝거나 잘려있습니다.");
+                                showModal("머리 위치 오류", "머리가 사진 상단과 너무 가깝거나 잘려있습니다.");
+                                console.error("머리가 붙어있거나 잘려있는 사진입니다.");
+                            }
+
+                            // 얼굴 정면 바라봄 여부
+                            if(!(await validator.isFacingForward(3.5))) {
+                                errMessages.push("얼굴이 정면을 향하고 있지 않습니다.");
+                                showModal("얼굴 방향 오류", "얼굴이 정면을 향하고 있지 않습니다.");
+                                console.error("얼굴이 정면을 향하고 있어야합니다.");
+                            }
+
+                            // 배경 색상 편차 여부
+                            if(!(await validator.isUniformBackground())) {
+                                errMessages.push("배경이 균일하지 않습니다. 단일 색상 배경을 사용하세요.");
+                                showModal("배경 오류", "배경이 균일하지 않습니다. 단일 색상 배경을 사용하세요.");
+                                console.error("배경 색상이 균일하지않습니다.");
+                            }
+
+                            // 얼굴 중앙 위치 여부
+                            if(!(await validator.isFaceCenteredAndComplete(false))) {
+                                errMessages.push("얼굴이 중앙에 위치하지 않습니다.");
+                                showModal("얼굴 위치 오류", "얼굴이 중앙에 위치하지 않습니다.");
+                                console.error("얼굴이 중앙에 위치하지 않습니다.");
+                            }
+
+                            if(errMessages.length > 0) {
+                                showModal("검증 실패", errMessages.join("<br/>"), 'error');
+                            } else {
+                                showModal("검증 성공", "증명 사진으로 적합합니다!", 'success');
+                            }
+
+                        } catch (error) {
+                            console.error("검증 오류:", error);
+                            showModal("검증 오류", error.message || "알 수 없는 오류가 발생했습니다.");
+                        }
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+
+            // 이벤트 리스너 등록
+            document.getElementById("photoInput").addEventListener("change", handleImageUpload);
+        });
+    </script>
 </body>
 </html>
