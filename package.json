@@ -1,6 +1,6 @@
 {
   "name": "photo-validator",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "증명사진 검증 라이브러리",
   "main": "dist/photo-validator.js",
   "files": [
