@@ -20,6 +20,10 @@ export default {
         {
           from: 'models',
           to: path.resolve(__dirname, 'dist/models')
+        },
+        {
+          from: 'index.html',
+          to: path.resolve(__dirname, 'dist/index.html')
         }
       ]
     })
