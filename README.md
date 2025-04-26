@@ -153,5 +153,8 @@ MIT
 >`김규진 책임`
 >
 
-## 버그 문의
-https://github.com/jinwanseo/photo-validator# photo-validator
+## Repository
+https://github.com/jinwanseo/photo-validator
+
+## Bug & Issue
+https://github.com/jinwanseo/photo-validator/issues
