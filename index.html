@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>증명 사진 검증</title>
+    <!-- face-api.js 라이브러리 로드 -->
+    <script defer src="dist/photo-validator.js" type="module"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        canvas {
+            display: block;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        img {
+            display: none;
+        }
+        p {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>증명 사진 업로드</h2>
+<input type="file" id="photoInput" accept="image/png, image/jpeg">
+<div id="canvasContainer"></div>
+<img id="preview" alt="미리보기 이미지">
+<p id="result"></p>
+
+<script>
+    // 페이지 로드 후 모듈 초기화
+    window.addEventListener("DOMContentLoaded", async () => {
+        // 사진 검증기 인스턴스 생성 (옵션 설정 가능)
+        const validator = new PhotoValidator({
+            modelsPath: '/models',
+            debug: true
+        });
+
+        // 모델 초기화
+        await validator.init('canvasContainer', 'result');
+
+        // 파일 업로드 핸들러
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const img = document.getElementById("preview");
+            const result = document.getElementById("result");
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+                img.onload = async () => {
+                    result.style.color = "black";
+                    result.textContent = "검증 중...";
+
+                    try {
+                        // 사진 검증 실행
+                        const validation = await validator.validatePhoto(file, img);
+
+                        // 결과 표시
+                        validator.displayResult(validation);
+                    } catch (error) {
+                        console.error("검증 오류:", error);
+                        result.textContent = "검증 중 오류가 발생했습니다: " + error.message;
+                        result.style.color = "red";
+                    }
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 이벤트 리스너 등록
+        document.getElementById("photoInput").addEventListener("change", handleImageUpload);
+    });
+</script>
+
+</body>
+</html>

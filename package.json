@@ -1,0 +1,48 @@
+{
+  "name": "photo-validator",
+  "version": "1.0.13",
+  "description": "증명사진 검증 라이브러리",
+  "main": "dist/photo-validator.js",
+  "files": [
+    "dist",
+    "models",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jinwanseo/photo-validator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jinwanseo/photo-validator/issues"
+  },
+  "scripts": {
+    "build": "webpack",
+    "prepublishOnly": "npm run build",
+    "publish": "npm publish",
+    "publish:public": "npm publish --access public"
+  },
+  "keywords": [
+    "face-api",
+    "photo-validator",
+    "photo-validation",
+    "photo-validation-library",
+    "photo-validation-library-for-face-api",
+    "photo"
+  ],
+  "author": "jinwanseo",
+  "license": "MIT",
+  "dependencies": {
+    "face-api.js": "^0.22.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "babel-loader": "^10.0.0",
+    "copy-webpack-plugin": "^13.0.0",
+    "webpack": "^5.99.7",
+    "webpack-cli": "^6.0.1"
+  },
+  "peerDependencies": {
+    "face-api.js": "^0.22.2"
+  }
+}
