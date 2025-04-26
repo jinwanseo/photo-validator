@@ -1,12 +1,12 @@
 {
   "name": "photo-validator",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "증명사진 검증 라이브러리",
   "main": "dist/photo-validator.js",
   "files": [
     "dist",
-    "models",
-    "README.md"
+    "README.md",
+    "index.html"
   ],
   "repository": {
     "type": "git",
@@ -18,8 +18,8 @@
   "scripts": {
     "publish": "npm publish",
     "build": "webpack",
-    "prepublishOnly": "npm run build",
     "version": "npm version patch",
+    "prepublishOnly": "npm run build",
     "publish:public": "npm publish --access public"
   },
   "keywords": [
